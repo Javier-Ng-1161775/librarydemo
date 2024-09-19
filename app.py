@@ -48,6 +48,23 @@ inner join books on books.bookid = bookcopies.bookid
     bookList = connection.fetchall()
     return render_template("addloan.html", loandate = todaydate,borrowers = borrowerList, books= bookList)
 
+@app.route("/book/edit/<bookid>")
+def editbook(bookid):
+    cur = getCursor()
+    cur.execute("SELECT * from books where bookid=%s",(bookid,))
+    bookdetails = cur.fetchone()
+    return render_template("editbook.html",bookdetails = bookdetails)
+
+@app.route("/updatebook", methods=["POST"])
+def updatebook():
+    bookid = request.form.get('bookid')
+    booktitle = request.form.get('booktitle')
+    cur = getCursor()
+    #print(loanid)
+    cur.execute("UPDATE books SET booktitle=%s WHERE bookid=%s;",(booktitle,bookid,))
+    return redirect("/listbooks")
+    
+
 @app.route("/loan/add", methods=["POST"])
 def addloan():
     borrowerid = request.form.get('borrower')
@@ -56,6 +73,14 @@ def addloan():
     cur = getCursor()
     cur.execute("INSERT INTO loans (borrowerid, bookcopyid, loandate, returned) VALUES(%s,%s,%s,0);",(borrowerid, bookid, str(loandate),))
     return redirect("/currentloans")
+
+@app.route("/loan/return/<loanid>", methods=["GET"])
+def returnloan(loanid):
+    cur = getCursor()
+    #print(loanid)
+    cur.execute("UPDATE loans SET returned=1 WHERE loanid=%s;",(loanid,))
+    return redirect("/currentloans")
+
 
 @app.route("/listborrowers")
 def listborrowers():
@@ -67,8 +92,8 @@ def listborrowers():
 @app.route("/currentloans")
 def currentloans():
     connection = getCursor()
-    sql=""" select br.borrowerid, br.firstname, br.familyname,  
-                l.borrowerid, l.bookcopyid, l.loandate, l.returned, b.bookid, b.booktitle, b.author, 
+    sql=""" select l.loanid, br.borrowerid, br.firstname, br.familyname,  
+                l.bookcopyid, l.loandate, l.returned, b.bookid, b.booktitle, b.author, 
                 b.category, b.yearofpublication, bc.format 
             from books b
                 inner join bookcopies bc on b.bookid = bc.bookid
